@@ -3,17 +3,20 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 
 type Player = 'X' | 'O'; 
-type Cell = Player | undefined;
-type Row = [Cell, Cell, Cell];
+type MaybePlayer = Player | undefined;
+type Row = [MaybePlayer, MaybePlayer, MaybePlayer];
 type Squares = [...Row, ...Row, ...Row];
 type History = Squares[];
+type Line = [number, number, number];
 
 function Square (props: {
   onClick: () => void
-  value: Cell
+  value: MaybePlayer
+  isHighlight: boolean
 }) {
+  const className = props.isHighlight ? "square highlight" : "square"
   return (
-    <button className="square" onClick={props.onClick}>
+    <button className={className} onClick={props.onClick}>
       {props.value}
     </button>
   );
@@ -22,14 +25,14 @@ function Square (props: {
 function Board(props: {
   squares: Squares
   onClick: (i: number) => void
+  winLine: Line | undefined
 }) {
-  const winner = calculateWinner(props.squares);
-
   const renderSquare = (i: number) => {
     return  (
       <Square
         value={props.squares[i]}
         onClick={() => props.onClick(i)}
+        isHighlight={props.winLine != undefined && props.winLine.includes(i)}
       />
     );
   };
@@ -91,12 +94,16 @@ function Game() {
     );
   });
 
-  const status = winner ? `Winner: ${winner}` : `Next player: ${nextPlayer}`;
+  const status = winner ? `Winner: ${winner.player}` : `Next player: ${nextPlayer}`;
 
   return (
     <div className="game">
       <div className="game-board">
-        <Board squares={current} onClick={(i: number) => handleClick(i)}/>
+        <Board 
+          squares={current}
+          onClick={(i: number) => handleClick(i)}
+          winLine={winner?.line}
+        />
       </div>
       <div className="game-info">
         <div>{ status }</div>
@@ -111,7 +118,7 @@ function Game() {
 const root = ReactDOM.createRoot(document.getElementById("root")!);
 root.render(<Game />);
 
-function calculateWinner(squares: Squares): Cell {
+function calculateWinner(squares: Squares): {player: Player, line: Line} | undefined {
   const lines = [
     [0, 1, 2],
     [3, 4, 5],
@@ -123,8 +130,9 @@ function calculateWinner(squares: Squares): Cell {
     [2, 4, 6],
   ];
   for (const [a, b, c] of lines) {
-    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-      return squares[a];
+    const player = squares[a];
+    if (player && player === squares[b] && player === squares[c]) {
+      return {player: player, line: [a, b, c]};
     }
   }
   return undefined;
